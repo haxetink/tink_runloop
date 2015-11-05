@@ -1,6 +1,7 @@
 package tink;
 
 import haxe.CallStack;
+import haxe.Timer;
 import tink.concurrent.*;
 import tink.runloop.*;
 import tink.runloop.WorkResult;
@@ -13,15 +14,47 @@ class RunLoop extends QueueWorker {
   
   static public var current(default, null):RunLoop;
   
+  public function burst(time:Float) {
+    var limit = Timer.stamp() + time;
+    var ret = null;
+    do {
+      switch step() {
+        case Progressed:
+        case v: 
+          ret = v;
+          break;
+      }
+    } while (Timer.stamp() < limit);    
+    return ret;
+  }
+  
   static function create(init:Void->Void) {
     var r = new RunLoop();
+    
     current = r;
-    r.asap(function () init());
-    while (true) 
-      switch r.step() {
-        case Done | Aborted: break;
-        default:
-      }    
+    
+    r.execute(init);
+    
+    #if flash
+      flash.Boot.getTrace().selectable = true;
+      flash.Lib.current.stage.addEventListener(flash.events.Event.ENTER_FRAME, function (_) { 
+        r.burst(.01);
+      });
+    #elseif js
+      var t = new Timer(10);
+      t.run = 
+        @do switch r.burst(.001) {
+          case Done | Aborted: 
+            t.stop();
+          default:
+        }
+    #else
+      while (true) 
+        switch r.step() {
+          case Done | Aborted: break;
+          default:
+        }
+    #end
   }
   
   function new(id = 'root_loop') {
@@ -118,6 +151,17 @@ class RunLoop extends QueueWorker {
   
   #if !concurrent
   var slaveCounter = 0;
+  function runSlaves():WorkResult {
+    slaveCounter %= slaves.length;
+    if (slaves.length > 0)
+      for (_ in 0...slaves.length) 
+        switch slaves[slaveCounter++ % slaves.length].step() {
+          case Progressed:
+            return Progressed;
+          default:
+        }
+    return Idle;
+  }
   #end
   
   override function doStep():WorkResult 
@@ -129,15 +173,6 @@ class RunLoop extends QueueWorker {
             #if concurrent
               super.doStep();
             #else
-              function runSlaves():WorkResult {
-                for (_ in 0...slaves.length) 
-                  switch slaves[slaveCounter = (slaveCounter + 1) % slaves.length].step() {
-                    case Progressed:
-                      return Progressed;
-                    default:
-                  }
-                return Idle;
-              }
               runSlaves();
             #end
         case v: 

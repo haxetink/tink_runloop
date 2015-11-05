@@ -20,7 +20,7 @@ abstract Task(TaskObject) from TaskObject to TaskObject {
 }
 
 interface TaskObject {
-	//TODO: this should be merged with CallbackLink
+  //TODO: this should be merged with CallbackLink
 	var recurring(get, never):Bool;
 	var state(get, never):TaskState;
 	function cancel():Void;	
