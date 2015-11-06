@@ -77,7 +77,7 @@ class RunLoop extends QueueWorker {
         r.burst(.01);
       });
     #elseif js
-      var t = new Timer(0),
+      var t = new haxe.Timer(0);
       t.run = burst(t.stop);
     #else
       while (true) 
