@@ -83,6 +83,7 @@ class RunLoop extends QueueWorker {
   
   function new(id = 'root_loop') {
     slaves = [];
+    done = _done = Signal.trigger();
     super(this, id);
   }
   
@@ -205,7 +206,7 @@ class RunLoop extends QueueWorker {
       switch tasks.pop() {
         case null:
           if (this.retainCount == 0) {
-            _done.fire(Noise);
+            _done.trigger(Noise);
             Done;
           }
           else 
