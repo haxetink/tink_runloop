@@ -20,7 +20,7 @@ addons:
 
 install:
   # Install project dependencies
-  - haxelib install tests/common.hxml
+  - haxelib install common.hxml --always
   - haxelib install hxcpp
   - haxelib install hxjava
   - haxelib install hxcs
