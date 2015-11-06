@@ -1,0 +1,5 @@
+-lib tink_core
+-lib tink_concurrent
+-cp src
+-cp tests
+-main RunTests

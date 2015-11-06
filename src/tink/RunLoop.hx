@@ -81,7 +81,7 @@ class RunLoop extends QueueWorker {
     #end
   }
   
-  function new(id = 'root_loop') {
+  function new(id = 'ROOT_LOOP') {
     slaves = [];
     done = _done = Signal.trigger();
     super(this, id);
@@ -226,7 +226,7 @@ class RunLoop extends QueueWorker {
    * Otherwise, slaves progress when the owner run loop idles.
    */
   public function createSlave():Worker {
-    var w = new QueueWorker(this, 'worker#' + this.slaves.length);
+    var w = new QueueWorker(this, '$id/worker#${this.slaves.length}');
     this.slaves.push(w);
     #if concurrent
       new Thread(function () {

@@ -73,7 +73,7 @@ class QueueWorker implements Worker {
 			}
 			
 	public function toString() 
-		return 'Worker#$id';
+		return 'Worker:$id';
 	
 	@:final public function step():WorkResult 
 		return 
