@@ -1,7 +1,6 @@
 package tink;
 
 import haxe.CallStack;
-import haxe.Timer;
 import tink.concurrent.*;
 import tink.runloop.*;
 import tink.runloop.WorkResult;
@@ -27,7 +26,15 @@ class RunLoop extends QueueWorker {
    * Note that if tasks block the loop, the burst can take significantly longer.
    */
   public function burst(time:Float):WorkResult {
-    var limit = Timer.stamp() + Math.min(time, burstCap);
+    function stamp()
+      return
+        #if sys
+          Sys.cpuTime();
+        #else
+          haxe.Timer.stamp();
+        #end
+        
+    var limit = stamp() + Math.min(time, burstCap);
     var ret = null;
     do {
       switch step() {
@@ -36,7 +43,7 @@ class RunLoop extends QueueWorker {
           ret = v;
           break;
       }
-    } while (Timer.stamp() < limit);    
+    } while (stamp() < limit);    
     return ret;
   }
   
@@ -52,10 +59,10 @@ class RunLoop extends QueueWorker {
     
     r.execute(init);
     
-    var stamp = Timer.stamp();
+    var stamp = haxe.Timer.stamp();
     function burst(stop) 
       return function () {
-        var delta = Timer.stamp() - stamp;
+        var delta = haxe.Timer.stamp() - stamp;
         stamp += delta;
         
         switch r.burst(delta) {
