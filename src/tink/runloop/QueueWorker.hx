@@ -48,6 +48,9 @@ class QueueWorker implements Worker {
 			
 		return task;
 	}
+  
+  public function kill()
+    tasks = null;
 	
 	function error(e:Error, t:Task) 
 		owner.asap(function () owner.onError(e, t, this, haxe.CallStack.exceptionStack()));
@@ -80,8 +83,9 @@ class QueueWorker implements Worker {
 				WrongThread;
 			
 	function doStep():WorkResult 
-		return 		
-			execute(
+		return 
+      if (tasks == null) Aborted;
+      else execute(
 				#if concurrent
 					tasks.await()
 				#else

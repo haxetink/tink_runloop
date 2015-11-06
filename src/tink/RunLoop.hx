@@ -9,13 +9,25 @@ import tink.runloop.WorkResult;
 using tink.CoreApi;
 
 class RunLoop extends QueueWorker {
+  /**
+   * The retain count of the loop. When this drops to 0 and no more tasks are scheduled, the loop is done.
+   */
   public var retainCount(default, null):Int = 0;
+  
   var slaves:Array<Worker>;
+  
+  public var done(default, null):Signal<Noise>;
+  var _done:SignalTrigger<Noise>;
   
   static public var current(default, null):RunLoop;
   
-  public function burst(time:Float) {
-    var limit = Timer.stamp() + time;
+  /**
+   * Lets the run loop burst for a given time,
+   * performing as many tasks as possible until the time elapses.
+   * Note that if tasks block the loop, the burst can take significantly longer.
+   */
+  public function burst(time:Float):WorkResult {
+    var limit = Timer.stamp() + Math.min(time, burstCap);
     var ret = null;
     do {
       switch step() {
@@ -28,6 +40,11 @@ class RunLoop extends QueueWorker {
     return ret;
   }
   
+  /**
+   * Caps how long a burst may take at most. Defaults to 250ms.
+   */
+  public var burstCap:Float = .25;
+  
   static function create(init:Void->Void) {
     var r = new RunLoop();
     
@@ -35,19 +52,26 @@ class RunLoop extends QueueWorker {
     
     r.execute(init);
     
+    var stamp = Timer.stamp();
+    function burst(stop) 
+      return function () {
+        var delta = Timer.stamp() - stamp;
+        stamp += delta;
+        
+        switch r.burst(delta) {
+          case Done | Aborted: 
+            stop();
+          default:
+        }
+      }
+    
     #if flash
-      flash.Boot.getTrace().selectable = true;
       flash.Lib.current.stage.addEventListener(flash.events.Event.ENTER_FRAME, function (_) { 
         r.burst(.01);
       });
     #elseif js
-      var t = new Timer(10);
-      t.run = 
-        @do switch r.burst(.001) {
-          case Done | Aborted: 
-            t.stop();
-          default:
-        }
+      var t = new Timer(0),
+      t.run = burst(t.stop);
     #else
       while (true) 
         switch r.step() {
@@ -68,9 +92,14 @@ class RunLoop extends QueueWorker {
   dynamic public function onError(e:Error, t:Task, w:Worker, stack:Array<StackItem>) {
     log(t);
     log('\nError on worker $w:\n${CallStack.toString(stack)}\n');
+    kill();
     throw e;
   }
   
+  /**
+   * Delegates a task to a worker.
+   * The resulting future is dispatched onto the runloop's thread.
+   */
   public function delegate<A>(task:Lazy<A>, slave:Worker):Future<A> {
     var t = Future.trigger();
     
@@ -83,10 +112,17 @@ class RunLoop extends QueueWorker {
     return t.asFuture();
   }
   
+  /**
+   * Delegates an unsafe task to a worker.
+   * The resulting surprise is dispatched onto the runloop's thread.
+   */
   public function tryDelegate<A>(unsafe:Lazy<A>, slave:Worker, report:Dynamic->Error):Surprise<A, Error>
     return delegate((function () return unsafe.get()).catchExceptions(report), slave);
   
-  public function retain() {
+  /**
+   * Increases the retain count of the loop.
+   */
+  public function retain():Task {
     this.asap(function () retainCount++);
     
     return Task.ofFunction(function () asap(function () retainCount--));
@@ -168,7 +204,10 @@ class RunLoop extends QueueWorker {
     return
       switch tasks.pop() {
         case null:
-          if (this.retainCount == 0) Done;
+          if (this.retainCount == 0) {
+            _done.fire(Noise);
+            Done;
+          }
           else 
             #if concurrent
               super.doStep();
@@ -179,13 +218,21 @@ class RunLoop extends QueueWorker {
           execute(v);
       }
   
+  /**
+   * Creates a slave.
+   * 
+   * In concurrent mode, each slave gets its own thread.
+   * Otherwise, slaves progress when the owner run loop idles.
+   */
   public function createSlave():Worker {
     var w = new QueueWorker(this, 'worker#' + this.slaves.length);
     this.slaves.push(w);
     #if concurrent
       new Thread(function () {
         w.thread = Thread.current;
-        while (true) w.step();
+        var res = null;
+        while (res != Aborted) 
+          res = w.step();
       });
     #end
     return w;
