@@ -1,0 +1,22 @@
+{
+	"name": "tink_runloop",
+	"license": "MIT",
+	"tags": [
+		"tink",
+		"cross",
+		"utility",
+		"event"
+	],
+	"classPath": "src",
+	"description": "Cross platform run loop abstraction",
+	"contributors": [
+		"back2dos"
+	],
+	"releasenote": "First haxelib release.",
+	"version": "0.0.0",
+	"url": "http://haxetink.org/tink_runloop",
+	"dependencies": {
+		"tink_core": "",
+		"tink_concurrent": "",
+	}
+}
