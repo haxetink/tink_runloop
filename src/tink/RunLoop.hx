@@ -80,7 +80,7 @@ class RunLoop extends QueueWorker {
     
     #if flash
       flash.Lib.current.stage.addEventListener(flash.events.Event.ENTER_FRAME, function (_) { 
-        r.burst(.01);
+        this.burst(.01);
       });
     #elseif js
       var t = new haxe.Timer(0);

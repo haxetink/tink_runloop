@@ -36,10 +36,8 @@ class TestPriorities extends TestCase {
     RunLoop.current.done.handle(function () called = true);
     assertFalse(called);
     
-    for (i in 0...100) {
-      trace(i);
+    for (i in 0...100) 
       assertEquals(Progressed, RunLoop.current.step());
-    }
     
     assertEquals(Done, RunLoop.current.step());
     assertTrue(called);
