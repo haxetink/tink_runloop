@@ -2,6 +2,7 @@ package;
 
 import haxe.unit.TestCase;
 import tink.RunLoop;
+import tink.runloop.WorkResult;
 
 class TestPriorities extends TestCase {
 
@@ -35,7 +36,12 @@ class TestPriorities extends TestCase {
     RunLoop.current.done.handle(function () called = true);
     assertFalse(called);
     
-    RunLoop.current.burst(.2);
+    for (i in 0...100) {
+      trace(i);
+      assertEquals(Progressed, RunLoop.current.step());
+    }
+    
+    assertEquals(Done, RunLoop.current.step());
     assertTrue(called);
     assertEquals(100, i);
   }

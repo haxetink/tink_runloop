@@ -4,13 +4,13 @@
   <output>
     <movie outputType="Application" />
     <movie input="" />
-    <movie path="bin\tinkrunloop.n" />
+    <movie path="bin\runloop.js" />
     <movie fps="0" />
     <movie width="0" />
     <movie height="0" />
     <movie version="0" />
     <movie minorVersion="0" />
-    <movie platform="Neko" />
+    <movie platform="JavaScript" />
     <movie background="#FFFFFF" />
   </output>
   <!-- Other classes to be compiled into your SWF -->
@@ -21,7 +21,7 @@
   </classpaths>
   <!-- Build options -->
   <build>
-    <option directives="concurrent" />
+    <option directives="" />
     <option flashStrict="False" />
     <option noInlineOnDebug="False" />
     <option mainClass="RunTests" />

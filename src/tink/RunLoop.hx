@@ -12,6 +12,7 @@ class RunLoop extends QueueWorker {
    * The retain count of the loop. When this drops to 0 and no more tasks are scheduled, the loop is done.
    */
   public var retainCount(default, null):Int = 0;
+  public var running(default, null):Bool;
   
   var slaves:Array<Worker>;
   
@@ -37,6 +38,7 @@ class RunLoop extends QueueWorker {
     var limit = stamp() + Math.min(time, burstCap);
     var ret = null;
     do {
+      if (!running) break;
       switch step() {
         case Progressed:
         case v: 
@@ -53,11 +55,14 @@ class RunLoop extends QueueWorker {
   public var burstCap:Float = .25;
   
   static function create(init:Void->Void) {
-    var r = new RunLoop();
+    current = new RunLoop();
+    current.spin(init);
+  }
+  
+  function spin(init:Void->Void) {
     
-    current = r;
-    
-    r.execute(init);
+    this.running = true;
+    this.execute(init);
     
     var stamp = haxe.Timer.stamp();
     function burst(stop) 
@@ -65,8 +70,9 @@ class RunLoop extends QueueWorker {
         var delta = haxe.Timer.stamp() - stamp;
         stamp += delta;
         
-        switch r.burst(delta) {
+        switch this.burst(delta) {
           case Done | Aborted: 
+            this.running = false;
             stop();
           default:
         }
@@ -80,12 +86,13 @@ class RunLoop extends QueueWorker {
       var t = new haxe.Timer(0);
       t.run = burst(t.stop);
     #else
-      while (true) 
-        switch r.step() {
-          case Done | Aborted: break;
+      while (this.running) 
+        switch this.step() {
+          case Done | Aborted: this.running = false;
           default:
         }
     #end
+    
   }
   
   function new(id = 'ROOT_LOOP') {
@@ -102,7 +109,7 @@ class RunLoop extends QueueWorker {
     log('\nError on worker $w:\n${CallStack.toString(stack)}\n');
     kill();
     throw e;
-  }
+  }  
   
   /**
    * Delegates a task to a worker.
