@@ -118,10 +118,16 @@ class RunLoop extends QueueWorker {
   public function delegate<A>(task:Lazy<A>, slave:Worker):Future<A> {
     var t = Future.trigger();
     
-    var callback = bind(t.trigger);
+    this.asap(function () retainCount++);
     
     slave.work(
-      function () callback.invoke(task.get())
+      function () {
+        var res = task.get();
+        this.work(function () {
+          t.trigger(res);
+          retainCount--;
+        });
+      }
     );
     
     return t.asFuture();

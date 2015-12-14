@@ -25,7 +25,7 @@ class QueueWorker implements Worker {
 		this.thread = Thread.current;
 	}
   
-	dynamic public function log(v:Dynamic, ?p:haxe.PosInfos)
+	public function log(v:Dynamic, ?p:haxe.PosInfos)
     owner.log(v, p);
   
 	public function work(task:Task):Task {
