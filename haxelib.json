@@ -12,7 +12,7 @@
 	"contributors": [
 		"back2dos"
 	],
-	"releasenote": "First haxelib release.",
+	"releasenote": "First haxelib release",
 	"version": "0.0.0",
 	"url": "http://haxetink.org/tink_runloop",
 	"dependencies": {
