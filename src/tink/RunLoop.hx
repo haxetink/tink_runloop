@@ -105,10 +105,13 @@ class RunLoop extends QueueWorker {
     haxe.Log.trace(v, p);
   
   dynamic public function onError(e:Error, t:Task, w:Worker, stack:Array<StackItem>) {
-    log(t);
-    log('\nError on worker $w:\n${CallStack.toString(stack)}\n');
-    kill();
-    throw e;
+    if (w != this) {
+      log(t);
+      log('\nError on worker $w:\n${CallStack.toString(stack)}\n');
+      kill();
+      throw e;
+    }
+    else Error.rethrow(e);
   }  
   
   /**
