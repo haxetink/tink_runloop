@@ -5,7 +5,7 @@ import tink.concurrent.Mutex;
 /**
  * Represents a task to be run by a `Worker`.
  * 
- * For common use cases, you can just rely on the fact that any `Void->Void` is autocast to `Task`.
+ * For common use cases, you can just rely on the fact that any `Void->Void` as well as `Void->TaskRepeat` is autocast to `Task`.
  * If performance becomes an issue, you can implement your own `TaskObject` instead.
  * Unless you have *very good* reasons not to, extending `TaskBase` is the suggested way to do it.
  * 
@@ -13,10 +13,19 @@ import tink.concurrent.Mutex;
  */
 @:forward
 abstract Task(TaskObject) from TaskObject to TaskObject {
+  
 	@:from static public function ofFunction(f:Void->Void):Task 
     return new FunctionTask(f);
+    
+	@:from static public function repeat(f:Void->TaskRepeat):Task 
+    return new RepeatableFunctionTask(f);
 		
 	static public var NOOP(default, null):Task = new Noop();
+}
+
+enum TaskRepeat {
+  Continue;
+  Done;
 }
 
 interface TaskObject {
@@ -58,7 +67,7 @@ class TaskBase implements TaskObject {
 	 */
 	var m:Mutex;
 	
-	public var recurring(get, null):Bool = false;
+	public var recurring(get, null):Bool;
 	
 		inline function get_recurring() return recurring;
 	
@@ -98,7 +107,8 @@ class TaskBase implements TaskObject {
 			}
 		});
 	
-	function new() {
+  function new(?recurring = false) {
+    this.recurring = recurring;
 		state = Pending;
 		m = new Mutex();
 	}
@@ -113,7 +123,7 @@ class FunctionTask extends TaskBase {
 	var f:Void->Void;
 	
 	public function new(f) {
-		super();
+    super();
 		this.f = f;
 	}
 	
@@ -122,4 +132,19 @@ class FunctionTask extends TaskBase {
 		
 	override function doPerform()
 		f();
+}
+
+class RepeatableFunctionTask extends TaskBase {
+	var f:Void->TaskRepeat;
+	
+	public function new(f) {
+    super();
+		this.f = f;
+	}
+	
+	override function doCleanup()
+		this.f = null;
+		
+	override function doPerform()
+    this.recurring = f() == Continue;
 }
