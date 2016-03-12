@@ -19,7 +19,15 @@ class RunLoop extends QueueWorker {
   public var done(default, null):Signal<Noise>;
   var _done:SignalTrigger<Noise>;
   
-  static public var current(default, null):RunLoop;
+  static public var current(default, null):RunLoop = new RunLoop();
+  
+  static function getStamp()
+    return
+      #if sys
+        Sys.cpuTime();
+      #else
+        haxe.Timer.stamp();
+      #end
   
   /**
    * Lets the run loop burst for a given time,
@@ -27,15 +35,8 @@ class RunLoop extends QueueWorker {
    * Note that if tasks block the loop, the burst can take significantly longer.
    */
   public function burst(time:Float):WorkResult {
-    function stamp()
-      return
-        #if sys
-          Sys.cpuTime();
-        #else
-          haxe.Timer.stamp();
-        #end
         
-    var limit = stamp() + Math.min(time, burstCap);
+    var limit = getStamp() + Math.min(time, burstCap);
     var ret = null;
     do {
       if (!running) break;
@@ -45,7 +46,7 @@ class RunLoop extends QueueWorker {
           ret = v;
           break;
       }
-    } while (stamp() < limit);    
+    } while (getStamp() < limit);    
     return ret;
   }
   
@@ -54,9 +55,14 @@ class RunLoop extends QueueWorker {
    */
   public var burstCap:Float = .25;
   
-  static function create(init:Void->Void) {
-    current = new RunLoop();
-    current.spin(init);
+  static function create(init:Void->Void) 
+    current.enter(init);
+  
+  public function enter(init:Void->Void) {
+    if (!running)
+      spin(init);
+    else
+      work(init);
   }
   
   function spin(init:Void->Void) {
@@ -64,10 +70,10 @@ class RunLoop extends QueueWorker {
     this.running = true;
     this.execute(init);
     
-    var stamp = haxe.Timer.stamp();
+    var stamp = getStamp();
     function burst(stop) 
       return function () {
-        var delta = haxe.Timer.stamp() - stamp;
+        var delta = getStamp() - stamp;
         stamp += delta;
         
         switch this.burst(delta) {
@@ -79,8 +85,13 @@ class RunLoop extends QueueWorker {
       }
     
     #if flash
-      flash.Lib.current.stage.addEventListener(flash.events.Event.ENTER_FRAME, function (_) { 
-        this.burst(.01);
+      var beacon = flash.Lib.current.stage;
+      var progress = null;
+      function stop()
+        beacon.removeEventListener(flash.events.Event.ENTER_FRAME, progress);
+        
+      beacon.addEventListener(flash.events.Event.ENTER_FRAME, progress = function (_) { 
+        burst(stop);
       });
     #elseif js
       var t = new haxe.Timer(0);
