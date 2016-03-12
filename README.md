@@ -10,13 +10,17 @@ A tasks, simply put, look very much like this:
 
 ```haxe
 abstract Task {
-	public var recurring(get, never):Bool;
-	public var state(get, never):TaskState;
   
-	public function cancel():Void;	
-	public function perform():Void;
+	var recurring(get, never):Bool;
+	var state(get, never):TaskState;
+  
+	function cancel():Void;	
+	function perform():Void;
   
   @:from static function ofFunction(f:Void->Void):Task;
+  @:from static function repeat(f:Void->TaskRepeat):Task;
+  
+  static var NOOP(default, null):Task;
 }
 
 enum TaskState {
@@ -24,6 +28,11 @@ enum TaskState {
 	Canceled;
 	Busy;
 	Performed;
+}
+
+enum TaskRepeat {
+  Continue;
+  Done;
 }
 ```
 
@@ -46,8 +55,8 @@ Run loops are particular implementors of the `Worker` interface and can be descr
 
 ```haxe
 class RunLoop implements Worker {
-  static public var current(get, never):RunLoop;
-  public function createSlave():Worker;
+  static var current(get, never):RunLoop;
+  function createSlave():Worker;
 }
 ```
 
@@ -77,4 +86,4 @@ This allows you offloading compression into a slave like so:
 BackgroundCompression.compress(someEntries, 9, RunLoop.current.createSlave());
 ```
 
-Ideally you'll want to pool slaves to avoid creating too many.
+Ideally, you'll want to pool slaves to avoid creating too many.
