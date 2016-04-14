@@ -12,8 +12,8 @@
 	"contributors": [
 		"back2dos"
 	],
-	"releasenote": "Remove mistakenly added file.",
-	"version": "0.0.1",
+	"releasenote": "Make it easier to define recurring tasks.",
+	"version": "0.1.0",
 	"url": "http://haxetink.org/tink_runloop",
 	"dependencies": {
 		"tink_concurrent": "",
