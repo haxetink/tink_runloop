@@ -1,22 +1,22 @@
 package tink.runloop;
 
 enum WorkResult {
-	Progressed;
-	Waiting(seconds:Float);
+  Progressed;
+  Waiting(seconds:Float);
   /**
    * 
    */
-	Idle;
+  Idle;
   /**
    * 
    */
-	Done;
+  Done;
   /**
    * 
    */
-	Aborted;
+  Aborted;
   /**
    * Returned when attempting to cause a worker step from the wrong thread.
    */
-	WrongThread;
+  WrongThread;
 }
