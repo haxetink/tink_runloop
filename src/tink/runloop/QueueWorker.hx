@@ -50,7 +50,7 @@ class QueueWorker implements Worker {
   }
   
   public function kill()
-    asap(function() { tasks = null; } );
+    asap(function() tasks = null);
   
   function error(e:Error, t:Task) 
     owner.asap(function () owner.onError(e, t, this, haxe.CallStack.exceptionStack()));
