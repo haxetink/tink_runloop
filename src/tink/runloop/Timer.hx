@@ -32,8 +32,10 @@ class Timer {
 		else stop();
 	}
 	
-	public function stop()
+	public function stop() {
 		next = -1;
+		f = null;
+	}
 		
 }
 
