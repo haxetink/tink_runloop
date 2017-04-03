@@ -1,0 +1,7 @@
+{
+    "haxe.displayConfigurations": [
+        ["dev.hxml"],
+        ["extraParams.hxml"],
+        ["tests.hxml"]
+    ]
+}
