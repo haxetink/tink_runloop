@@ -268,6 +268,7 @@ class RunLoop extends QueueWorker {
         var res = null;
         while (res != Aborted) 
           res = w.step();
+        this.asap(function() this.slaves.remove(w));
       });
     #end
     return w;
