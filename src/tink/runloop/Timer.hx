@@ -13,7 +13,7 @@ class Timer {
 	var interval:Float;
 	
 	public static inline function delay(ms:Int, f:Void->Void) {
-		new Timer(ms, f);
+		return new Timer(ms, f);
 	}
 	
 	public function new(ms:Int, f:Void->Void, recurring = false, ?task:TimerTask) {
@@ -44,17 +44,22 @@ class TimerTask extends TaskBase {
 	public static var current(default, null):TimerTask = new TimerTask();
 	
 	var timers:Array<Timer> = [];
+	var release:Task;
 
 	public function new() {
 		super(true);
-		tink.RunLoop.current.work(this);
+		var slave = RunLoop.current.createSlave();
+		slave.work(this);
 	}
 	
 	public function stamp() 
 		return Sys.time();
 	
-	public function add(timer:Timer)
+	public function add(timer:Timer) {
+		if(release == null)
+			release = RunLoop.current.retain();
 		timers.push(timer);
+	}
 
 	override function doCleanup()
 		timers = [];
@@ -69,8 +74,13 @@ class TimerTask extends TaskBase {
 				case v: if(stamp() > v) timer.run();
 			}
 		}
+		
+		if(timers.length == 0 && release != null) {
+			RunLoop.current.work(release);
+			release = null;
+		}
+		
 		Sys.sleep(0.01);
 	}
-	
 }
 #end
