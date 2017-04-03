@@ -43,6 +43,9 @@ class TimerTask extends TaskBase {
 	
 	public static var current(default, null):TimerTask = new TimerTask();
 	
+	#if concurrent
+	var mutex = new tink.concurrent.Mutex();
+	#end
 	var timers:Array<Timer> = [];
 	var release:Task;
 
@@ -56,9 +59,17 @@ class TimerTask extends TaskBase {
 		return Sys.time();
 	
 	public function add(timer:Timer) {
+		#if concurrent
+		mutex.acquire();
+		#end
+		
 		if(release == null)
 			release = RunLoop.current.retain();
 		timers.push(timer);
+		
+		#if concurrent
+		mutex.release();
+		#end
 	}
 
 	override function doCleanup()
