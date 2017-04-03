@@ -77,6 +77,10 @@ class TimerTask extends TaskBase {
 		timers = [];
 		
 	override function doPerform() {
+		#if concurrent
+		mutex.acquire();
+		#end
+		
 		var len = timers.length;
 		var i = 0;
 		while(i < len) {
@@ -97,6 +101,10 @@ class TimerTask extends TaskBase {
 			RunLoop.current.work(release);
 			release = null;
 		}
+		
+		#if concurrent
+		mutex.release();
+		#end
 		
 		// Don't exhaust the cpu
 		// TODO: need a smarter machanism, because this blocks in single threaded mode
