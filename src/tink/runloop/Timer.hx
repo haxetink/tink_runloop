@@ -46,6 +46,7 @@ class TimerTask extends TaskBase {
 	#if concurrent
 	var mutex = new tink.concurrent.Mutex();
 	#end
+	
 	var timers:Array<Timer> = [];
 	var release:Task;
 
@@ -76,13 +77,19 @@ class TimerTask extends TaskBase {
 		timers = [];
 		
 	override function doPerform() {
-		var i = timers.length;
-		while(--i >= 0) {
+		var len = timers.length;
+		var i = 0;
+		while(i < len) {
 			var timer = timers[i];
 			
 			switch timer.next {
-				case -1: timers.splice(i, 1);
-				case v: if(stamp() > v) timer.run();
+				case -1:
+					// TODO: using a list may be more efficient than using array#splice()
+					timers.splice(i, 1);
+					len--;
+				case v:
+					if(stamp() > v) timer.run();
+					i++;
 			}
 		}
 		
@@ -91,6 +98,8 @@ class TimerTask extends TaskBase {
 			release = null;
 		}
 		
+		// Don't exhaust the cpu
+		// TODO: need a smarter machanism, because this blocks in single threaded mode
 		Sys.sleep(0.01);
 	}
 }
