@@ -1,0 +1,5 @@
+-cp src
+-D tink_runloop
+
+-lib tink_concurrent
+-lib tink_syntaxhub
