@@ -1,23 +1,23 @@
 package;
 
-import haxe.unit.TestCase;
 import tink.RunLoop;
 import tink.runloop.WorkResult;
 
-class TestPriorities extends TestCase {
-
-  function test() {
+@:asserts
+class TestPriorities {
+  public function new() {}
+  public function test() {
     var i = 0;
     function inc() i++;
     function dec() i--;
     RunLoop.current.asap(inc);
-    assertEquals(1, i);
+    asserts.assert(i == 1);
     RunLoop.current.asap(inc);
-    assertEquals(2, i);
+    asserts.assert(i == 2);
     RunLoop.current.atNextStep(inc);
-    assertEquals(2, i);
+    asserts.assert(i == 2);
     RunLoop.current.step();
-    assertEquals(3, i);
+    asserts.assert(i == 3);
     
     for (i in 0...100)
       RunLoop.current.work(inc);
@@ -25,23 +25,25 @@ class TestPriorities extends TestCase {
     for (i in 0...3)
       RunLoop.current.atNextStep(dec);
       
-    assertEquals(3, i);
+    asserts.assert(i == 3);
     
     for (i in 0...3)
       RunLoop.current.step();
       
-    assertEquals(0, i);
+    asserts.assert(i == 0);
     
     var called = false;
     RunLoop.current.done.handle(function () called = true);
-    assertFalse(called);
+    asserts.assert(!called);
     
     for (i in 0...100) 
-      assertEquals(Progressed, RunLoop.current.step());
+      asserts.assert(RunLoop.current.step() == Progressed);
     
-    assertEquals(Done, RunLoop.current.step());
-    assertTrue(called);
-    assertEquals(100, i);
+    asserts.assert(RunLoop.current.step() == Done);
+    asserts.assert(called);
+    asserts.assert(i == 100);
+    
+    return asserts.done();
   }
   
 }

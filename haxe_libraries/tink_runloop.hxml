@@ -3,3 +3,5 @@
 
 -lib tink_concurrent
 -lib tink_syntaxhub
+
+--macro tink.runloop.Boot.boot()
