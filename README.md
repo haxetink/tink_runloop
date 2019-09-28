@@ -12,11 +12,11 @@ A tasks, simply put, look very much like this:
 ```haxe
 abstract Task {
   
-	var recurring(get, never):Bool;
-	var state(get, never):TaskState;
+  var recurring(get, never):Bool;
+  var state(get, never):TaskState;
   
-	function cancel():Void;	
-	function perform():Void;
+  function cancel():Void;	
+  function perform():Void;
   
   @:from static function ofFunction(f:Void->Void):Task;
   @:from static function repeat(f:Void->TaskRepeat):Task;
@@ -25,10 +25,10 @@ abstract Task {
 }
 
 enum TaskState {
-	Pending;
-	Canceled;
-	Busy;
-	Performed;
+  Pending;
+  Canceled;
+  Busy;
+  Performed;
 }
 
 enum TaskRepeat {
@@ -43,9 +43,9 @@ Tasks are meant to be run by workers, which essentially boild down to this:
 
 ```haxe
 interface Worker {	
-	function work(task:Task):Task;
-	function atNextStep(task:Task):Task;
-	function asap(task:Task):Task;
+  function work(task:Task):Task;
+  function atNextStep(task:Task):Task;
+  function asap(task:Task):Task;
   function kill():Void;
 }
 ```
