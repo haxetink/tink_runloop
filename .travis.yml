@@ -5,19 +5,19 @@ language: node_js
 node_js: 8
 
 install:
-  - yarn global add lix haxe-travix
+  - npm install lix -g
   - lix download
 
 script:
-  - travix interp
-  - travix neko
-  - travix neko -D concurrent
-  - travix python
-  - travix node
-  # - travix flash
-  - travix java
-  - travix java -D concurrent
-  - travix cpp
-  - travix cpp -D concurrent
-  - travix cs
-  - travix php
+  - lix run travix interp
+  - lix run travix neko
+  - lix run travix neko -D concurrent
+  - lix run travix python
+  - lix run travix node
+  # - lix run travix flash
+  - lix run travix java -D jvm
+  - lix run travix java -D concurrent -D jvm
+  - lix run travix cpp
+  - lix run travix cpp -D concurrent
+  - lix run travix cs
+  - lix run travix php
