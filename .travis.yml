@@ -1,23 +1,48 @@
 sudo: required
-dist: trusty
+dist: xenial
+
+stages:
+  - test
+  - deploy
 
 language: node_js
 node_js: 8
 
+env:
+  - HAXE_VERSION=stable
+  - HAXE_VERSION=latest
+  - HAXE_VERSION=nightly
+  
 install:
-  - npm install lix -g
+  - npm i -g lix
+  - lix install haxe $HAXE_VERSION
   - lix download
 
 script:
+  - if [ "$HAXE_VERSION" != "stable" ]; then lix run travix java -D jvm; fi
+  - if [ "$HAXE_VERSION" != "stable" ]; then lix run travix java -D concurrent -D jvm; fi
   - lix run travix interp
   - lix run travix neko
   - lix run travix neko -D concurrent
   - lix run travix python
   - lix run travix node
   # - lix run travix flash
-  - lix run travix java -D jvm
-  - lix run travix java -D concurrent -D jvm
   - lix run travix cpp
   - lix run travix cpp -D concurrent
   - lix run travix cs
   - lix run travix php
+
+jobs:
+  include:
+    # - stage: test # should uncomment this when there is no matrix above (e.g. only one os, one env, etc)
+    - stage: deploy
+      os: linux
+      install:
+        - npm i -g lix
+        - lix download
+      script: skip
+      env:
+        secure: "L7cNWJjC1uhnp5FNAwIn3rSh46HSchY0OPJPRs9PnHE1ctbau2tppeR6XBrrpjnG7jeuaa1OI0HEny0dmsLeXBRtRHRvpry1fPrPwGSyX70g3L0hJn4QfLxzhvuxqOkZAF2UTT1fJQiVGGH/bA1lKlORb3UZOaxP12VExj7fbq+gtiSNGqOw5pkDdSIsBS8h2W+45JA59tGdOFPCkVMR6cwdkt38a8Lb7VHZey8+cyDkPU/chjka4sTeJxX8xe8kxjlPHYf0zj4Aw9QhbCakI6fmwiyLuAGfZgvpt+azSgX2HraKhyNMFvaoWNr6ehEW3djkzV+/VTl113h9Np89qNbNFI1yCjKXzNNGth/OYhCox71CdaEHeo4AoUOUTqG2ZlUSSDnVTXk6sf4nWGEEa3tV+cLoht7k7Uzn63+ayR+MplqILjbLpyCvFate4mqExurKA9MCyaHZzeTqYesQpMCn2kIEP7a6GxHH12PGZhccvaHnLAgBZkRg6SW+da5XClhFuXVOX65GZsm16Uq5hbALcFG/f6w2ln8IEUuehwtTz9j3BHNR+LEtDZdxL+Hk+AWoR+OkVR7vDUL+r3fCv9DehwyZZ/J41cJtx0FmruHPTpQmVAU/hVooCxsVWD5vcj9WHTQCJdWjdWngwuskWjAFh7UsNbeWBnBSIMNweRs="
+      after_success:
+        - lix run travix install
+        - lix run travix release  
