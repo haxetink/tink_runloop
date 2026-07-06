@@ -88,3 +88,32 @@ BackgroundCompression.compress(someEntries, 9, RunLoop.current.createSlave());
 ```
 
 Ideally, you'll want to pool slaves to avoid creating too many.
+
+## Hooking into a host's native loop
+
+`RunLoop.current` doesn't drive itself: it delegates scheduling to a `LoopDriver`, which is responsible for hooking `RunLoop`'s ticks into whatever event loop the host platform already has. A driver is picked automatically based on the compile target:
+
+- On `openfl`, ticks piggyback on `Application.current.onUpdate`, once per frame before rendering.
+- On `lime` without `openfl`, the same happens through `lime.app.Application.current.onUpdate`.
+- On `nodejs`, ticks are scheduled via `setImmediate`, integrating with libuv's event loop instead of busy-polling.
+- On other `js` targets (i.e. browsers), ticks use `requestAnimationFrame` when a `window` is available, falling back to `haxe.Timer(0)` otherwise (workers, headless `js`).
+- Everywhere else (cpp, neko, python, php, jvm, interp), the loop just runs a tight, blocking `while` loop on the calling thread, since there's no host loop to hook into.
+
+You can force the blocking driver on any target by compiling with `-D tink_runloop_driver_blocking`, or plug in your own by implementing `tink.runloop.LoopDriverObject` and calling `LoopDriver.set(myDriver)` before the loop starts. `LoopDriver.reset()` restores the platform default, which is handy in tests.
+
+### OpenFL and Lime
+
+A typical OpenFL or Lime application blocks inside `Application.exec()` and never returns from `main()`, so `tink_runloop` can't wrap it the usual way. Compile with `-D tink_runloop_no_boot` to skip that automatic wrapping, then hook the loop up yourself once your application exists, e.g. right after creating it:
+
+```haxe
+var app = new Application();
+// ...
+RunLoop.current.enter(function () {});
+app.exec();
+```
+
+Without `-D tink_runloop_no_boot`, the loop tries to attach to `Application.current` before it's been created and throws.
+
+### Node.js
+
+On Node, the loop stops pumping once it goes idle (`Done`), same as everywhere else. If you're waiting on external asynchronous work (a socket, a database driver, ...) that isn't itself scheduled through `tink_runloop`, keep the loop alive with `RunLoop.current.retain()` for as long as that work is pending - otherwise Node may exit early since nothing is left registered on its own event loop. Scheduling new work afterwards, via `work()`, `atNextStep()`, or `asap()`, automatically wakes the loop back up and reattaches the driver, so a `Done` loop isn't a dead end.

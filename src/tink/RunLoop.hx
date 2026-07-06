@@ -65,45 +65,70 @@ class RunLoop extends QueueWorker {
       work(init);
   }
   
-  function spin(init:Void->Void) {
+  var link:CallbackLink;
+  var killed = false;
+  
+  /**
+   * Hooks the run loop into the current `LoopDriver`, optionally running `init` synchronously first.
+   * Safe to call again after the loop has stopped (e.g. reached `Done`) to resume it.
+   */
+  function spin(?init:Void->Void) {
     
     this.running = true;
-    this.execute(init);
+    if (init != null)
+      this.execute(init);
     
     var stamp = getStamp();
-    function burst(stop) 
-      return function () {
-        var delta = getStamp() - stamp;
-        stamp += delta;
-        
-        switch this.burst(delta) {
-          case Done | Aborted: 
+    link = LoopDriver.current.schedule(function () {
+      var delta = getStamp() - stamp;
+      stamp += delta;
+      
+      // `burst` can return `null` when its time budget runs out mid-progress (call again later).
+      // Guard against it explicitly: switching on a `null` enum value crashes on some targets (e.g. neko).
+      var result = this.burst(delta);
+      return
+        if (result == null) true
+        else switch result {
+          case Done | Aborted:
             this.running = false;
-            stop();
+            false;
           default:
+            true;
         }
-      }
-    
-    #if flash
-      var beacon = flash.Lib.current.stage;
-      var progress = null;
-      function stop()
-        beacon.removeEventListener(flash.events.Event.ENTER_FRAME, progress);
-        
-      beacon.addEventListener(flash.events.Event.ENTER_FRAME, progress = function (_) { 
-        burst(stop);
-      });
-    #elseif js
-      var t = new haxe.Timer(0);
-      t.run = burst(t.stop);
-    #else
-      while (this.running) 
-        switch this.step() {
-          case Done | Aborted: this.running = false;
-          default:
-        }
-    #end
-    
+    });
+  }
+  
+  /**
+   * Resumes the loop if it isn't currently pumped by a driver, e.g. because it previously
+   * reached `Done`. Called whenever new work is scheduled.
+   */
+  function ensurePumping()
+    if (!running && !killed)
+      spin();
+  
+  override public function work(task:Task):Task {
+    var t = super.work(task);
+    ensurePumping();
+    return t;
+  }
+  
+  override public function atNextStep(task:Task):Task {
+    var t = super.atNextStep(task);
+    ensurePumping();
+    return t;
+  }
+  
+  override public function asap(task:Task):Task {
+    var t = super.asap(task);
+    ensurePumping();
+    return t;
+  }
+  
+  override public function kill() {
+    killed = true;
+    running = false;
+    link.cancel();
+    super.kill();
   }
   
   function new(id = 'ROOT_LOOP') {

@@ -7,6 +7,7 @@ class RunTests {
   static function main() {
     Runner.run(TestBatch.make([
       new TestPriorities(),
+      new TestLoopDriver(),
       new TestTimer(),
     ])).handle(Runner.exit);
   }
